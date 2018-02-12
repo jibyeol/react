@@ -100,3 +100,256 @@ class Square extends React.Component {
   }
 }
 ```
+
+## An Interactive Component
+
+클릭하면 Square 컴포넌트가 'X'로 채워지게 해보자.
+
+```
+class Square extends React.Component {
+  render() {
+    return (
+      <button className="square" onClick={() => alert('click')}>
+        {this.props.value}
+      </button>
+    );
+  }
+}
+```
+
+클릭하면 alert창이 뜰 것이다. `onClick` 프로퍼티로 함수를 전달하고 있다.
+
+React에서 `this.state`를 설정해서 상태를 갖을 수 있다.
+
+```
+class Square extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: null,
+    };
+  }
+
+  render() {
+    return (
+      <button className="square" onClick={() => alert('click')}>
+        {this.props.value}
+      </button>
+    );
+  }
+}
+```
+
+JavaScript의 classes에서 constructor를 정의할 때, `super();`를 꼭 명시해주어야 한다.
+
+이제 클릭시 현재 상태의 값을 보여주기 위해서 `render()` 메서드를 수정해보자.
+* `<button>` 태그 안에 `this.props.value`를 `this.state.value`로 바꿔준다.
+* `onClick`의 이벤트 핸들러를 `() => alert()`를 `() => this.setState({value : 'X'})`로 바꿔준다.
+
+```
+class Square extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: null,
+    };
+  }
+
+  render() {
+    return (
+      <button className="square" onClick={() => this.setState({value: 'X'})}>
+        {this.state.value}
+      </button>
+    );
+  }
+}
+```
+
+`this.setState`가 호출될 때마다 컴포넌트의 업데이트가 예정되어있으므로 state의 값이 변경되면서 컴포넌트와 그의 하위 컴포넌트들까지 다시 렌더링된다. `this.state.value`의 값이 `'X'`가 되면서 화면에 X가 보이게 될 것이다.
+
+## Developer Tools
+
+![React component tree](https://reactjs.org/static/devtools-878d91461c78d8f238e116477dfe0b46-6ca3b.png)
+
+# Lifting State Up
+
+여러 자식간의 데이터를 집계하거나 통신을 위해서 state를 상위 컴포넌트로 이동시킨다. 여기서는 9개의 null 배열을 갖도록한다.
+
+```
+class Board extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      squares: Array(9).fill(null),
+    };
+  }
+
+  renderSquare(i) {
+    return <Square value={i} />;
+  }
+
+  render() {
+    const status = 'Next player: X';
+
+    return (
+      <div>
+        <div className="status">{status}</div>
+        <div className="board-row">
+          {this.renderSquare(0)}
+          {this.renderSquare(1)}
+          {this.renderSquare(2)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(3)}
+          {this.renderSquare(4)}
+          {this.renderSquare(5)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(6)}
+          {this.renderSquare(7)}
+          {this.renderSquare(8)}
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+나중에는 배열이 다음과 같이 될 것이다.
+
+```
+[
+  'O', null, 'X',
+  'X', 'X', 'O',
+  'O', null, null,
+]
+```
+
+Board의 `renderSquare` 메소드는 다음처럼 바꿔준다.
+
+```
+  renderSquare(i) {
+    return <Square value={this.state.squares[i]} />;
+  }
+```
+
+이제 Square를 클릭할 때 일어날 일을 바꿔야 한다. Square에서 직접 Board의 state를 바꿀 수 없다. Square를 클릭할 때 함수를 Board에서 Square로 전달해준다.
+
+```
+  renderSquare(i) {
+    return (
+      <Square
+        value={this.state.squares[i]}
+        onClick={() => this.handleClick(i)}
+      />
+    );
+  }
+```
+
+* Square의 `render`에 `this.state.value`를 `this.props.value`로 바꾼다.
+* Square의 `render`에 `this.setState()`를 `this.props.onClick()`로 바꾼다.
+
+```
+class Square extends React.Component {
+  render() {
+    return (
+      <button className="square" onClick={() => this.props.onClick()}>
+        {this.props.value}
+      </button>
+    );
+  }
+}
+```
+
+1. `<button>` 컴포넌트의 `onClick` 프로퍼티는 React에게 이벤트 리스너를 설정하도록 지시한다.
+2. button이 클릭 될 때, React는 상위 `render()` 메소드에 정의되어 있는 `onClick` 이벤트 핸들러를 호출할 것이다.
+3. 이 이벤트 핸들러는 `this.props.onClick()`을 호출한다. Square의 프로퍼티는 Board에 의해 정의된다.
+4. Board는 `onClick={() => this.handleClick(i)}`를 Square에 전달하고 `this.handleClick(i)`를 호출한다.
+5. `handleClick()`를 구현하자.
+
+React에서 DOM `<button` 요소의 `onClick` attribute는 특별한 의미가 있지만, Square의 `onClick` 프로퍼티나 Board의 `handleClick()`을 다른 이름으로 사용할 수 있다. 하지만 React앱에서 attribute로 `on*`의 이름을 사용하고, 핸들러 메소드에서 `handle*`의 이름을 사용하는 것이 일반적이다.
+
+```
+class Board extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      squares: Array(9).fill(null),
+    };
+  }
+
+  handleClick(i) {
+    const squares = this.state.squares.slice();
+    squares[i] = 'X';
+    this.setState({squares: squares});
+  }
+
+  renderSquare(i) {
+    return (
+      <Square
+        value={this.state.squares[i]}
+        onClick={() => this.handleClick(i)}
+      />
+    );
+  }
+
+  render() {
+    const status = 'Next player: X';
+
+    return (
+      <div>
+        <div className="status">{status}</div>
+        <div className="board-row">
+          {this.renderSquare(0)}
+          {this.renderSquare(1)}
+          {this.renderSquare(2)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(3)}
+          {this.renderSquare(4)}
+          {this.renderSquare(5)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(6)}
+          {this.renderSquare(7)}
+          {this.renderSquare(8)}
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+`.slice()`를 호출하여 `squares` 배열을 있는 것을 사용하는 것 대신 복사를 한다.
+
+이제 Square대신 Board에 상태가 저장되어있다. Board의 상태가 변경되면, Square의 컴포넌트가 언제 어떻게 다시 렌더링될지 고민해보자.
+
+Square는 더이상 자신의 상태를 갖고있지 않다. 부모인 Board로부터 상태를 받고, 이것이 클릭될 때, 부모에게 알려준다.
+
+## Why Immutability Is Important
+
+`.slice()`를 이용해서 변경하기 전에 배열을 복사하고 기존 배열은 변경되지 않게 하는 것이 중요하다.
+
+일반적으로 데이터를 변경하는데 두가지 방법이 있다. (mutate) 첫번째로 직접 값을 변경하는 방법이 있다. (immutate) 두번째로 값을 복사하여 변경 후에 데이터를 대채하는 방법이 있다.
+
+### Data change with mutation
+```
+var player = {score: 1, name: 'Jeff'};
+player.score = 2;
+// Now player is {score: 2, name: 'Jeff'}
+```
+
+### Data change without mutation
+```
+var player = {score: 1, name: 'Jeff'};
+
+var newPlayer = Object.assign({}, player, {score: 2});
+// Now player is unchanged, but newPlayer is {score: 2, name: 'Jeff'}
+
+// Or if you are using object spread syntax proposal, you can write:
+// var newPlayer = {...player, score: 2};
+```
+
+결과는 똑같다. 하지만 두번째 방법이 성능을 향상시키는데 도움을 주는 이점이 있다.
+
+* Undo/Redo
