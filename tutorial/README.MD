@@ -11,7 +11,9 @@ create-react-app my-app
 cd my-app
 npm start
 ```
+
 npm 5.2.0이상 설치되어있으면, npx를 대신 사용할 수 있다.
+
 ```
 npx create-react-app my-app
 
@@ -25,11 +27,13 @@ npm start
 4. `index.css` 파일을 src 폴더에 추가함
 5. `index.js` 파일을 src 폴더에 추가함
 6. `index.js` 파일에 다음 내용을 추가
+
 ```
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 ```
+
 7. `npm start` 명령어 날림
 
 # Overview
@@ -38,6 +42,7 @@ import './index.css';
 React는 사용자 인터페이스를 구축하기위한 선언적이고 효율적이며 유연한 JavaScript 라이브러리이다.
 
 React.Component
+
 ```
 class ShoppingList extends React.Component {
   render() {
@@ -56,6 +61,7 @@ class ShoppingList extends React.Component {
 
 // Example usage: <ShoppingList name="Mark" />
 ```
+
 XML과 유사한 태그. 렌더링하는 것을 응답한다. React는 데이터가 변경될 떄 영향이 있는 구성요소만 효율적으로 렌더링해준다.
 
 여기서 ShppingList는 React 구성요소 클래스 또는 React 구성 요소 유형이다. 구성요소는 `props`라는 매개 변수를 사용하고 `render()` 메서드를 통해 표시할 뷰 계층 구조를 반환한다.
@@ -88,7 +94,9 @@ class Board extends React.Component {
     return <Square value={i} />;
   }
 ```
+
 prop를 통해서 데이터를 전달한다.
+
 ```
 class Square extends React.Component {
   render() {
@@ -333,6 +341,7 @@ Square는 더이상 자신의 상태를 갖고있지 않다. 부모인 Board로�
 일반적으로 데이터를 변경하는데 두가지 방법이 있다. (mutate) 첫번째로 직접 값을 변경하는 방법이 있다. (immutate) 두번째로 값을 복사하여 변경 후에 데이터를 대채하는 방법이 있다.
 
 ### Data change with mutation
+
 ```
 var player = {score: 1, name: 'Jeff'};
 player.score = 2;
@@ -340,6 +349,7 @@ player.score = 2;
 ```
 
 ### Data change without mutation
+
 ```
 var player = {score: 1, name: 'Jeff'};
 
@@ -352,4 +362,367 @@ var newPlayer = Object.assign({}, player, {score: 2});
 
 결과는 똑같다. 하지만 두번째 방법이 성능을 향상시키는데 도움을 주는 이점이 있다.
 
-* Undo/Redo
+* 쉬운 Undo/Redo 및 시간이동
+Immutability는 복잡한 기능을 쉽게 만든다. 예를 들어 이 예제에서 게임의 각 다른 스테이지를 시간 이동을 가능하게 구현할때 이전 데이터의 참조를 유지함으로써 쉽게 구현할 수 있다.
+
+* 변경사항 추적
+mutated 객체가 변경되었는지 확인하려면 모든 변수를 다 확인해야하므로 매우 복잡하다. 이것은 점차 복잡해 질 것이고, immutable 객체는 참조되는 객체가 이전과 달라지면 바뀐 것이므로 매우 쉽다.
+
+* React에서 언제 렌더링되는지 결정
+React에서 immutability의 가장 큰 장점은 간단한 순수 컴포넌트를 빌드할 때이다. immutable 데이터가 변화를 더 쉽게 감지해서 다시 랜더링을 요구할 때 쉽게 결정할 수 있다.
+
+## Functional Components
+
+생성자를 지웠다. 사실 React는 Square처럼 오직 `render` 함수만 갖고있는 컴포넌트를 위한 *functional components*라고 불리는 간단한 문법을 제공한다. `React.Component`를 extends하는 대신, props를 취하고 무엇을 렌더링하는지를 반환하는 함수를 적성해라.
+
+```
+function Square(props) {
+  return (
+    <button className="square" onClick={props.onClick}>
+      {props.value}
+    </button>
+  );
+}
+```
+
+`this.props`를 `props`로 바꿔야한다. 다른 것들도 functional components로 바꿀 수 있다. functional components는 작성하기 쉽고 나중에 더 많이 최적화될 것이다. 
+코드를 정리하면서 `onClick={()=>props.onClick()}`을 `onClick={props.onClick}`로 바꾸었다. `onClick={props.onClick()}`은 전달되지 않고 즉시 `props.onClick`가 바로 호출되기 때문에 작동되지 않는다.
+
+## Taking Turns
+
+'X'를 기본 상태로 지정하고 다음 턴도 적용해보자.
+
+```
+class Board extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      squares: Array(9).fill(null),
+      xIsNext: true,
+    };
+  }
+```
+
+이동할 때마다 `xIsNext`를 토글한다.
+
+```
+ handleClick(i) {
+    const squares = this.state.squares.slice();
+    squares[i] = this.state.xIsNext ? 'X' : 'O';
+    this.setState({
+      squares: squares,
+      xIsNext: !this.state.xIsNext,
+    });
+  }
+```
+
+다음 차례가 누군지 보여준다.
+
+```
+ render() {
+    const status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+
+    return (
+      // the rest has not changed
+```
+
+## Declaring a Winner
+
+helper function
+
+```
+function calculateWinner(squares) {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+  for (let i = 0; i < lines.length; i++) {
+    const [a, b, c] = lines[i];
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
+    }
+  }
+  return null;
+}
+```
+
+누군가 승리하면 결과를 보여준다. Board의 `render` 코드를 다음과 같이 바꿔준다.
+
+```
+  render() {
+    const winner = calculateWinner(this.state.squares);
+    let status;
+    if (winner) {
+      status = 'Winner: ' + winner;
+    } else {
+      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+    }
+
+    return (
+      // the rest has not changed
+```
+
+Board의 `handleClick`을 수정하여 누군가 이기거나 이미 채워진 곳이라면 무시하도록 합니다.
+
+```
+handleClick(i) {
+    const squares = this.state.squares.slice();
+    if (calculateWinner(squares) || squares[i]) {
+      return;
+    }
+    squares[i] = this.state.xIsNext ? 'X' : 'O';
+    this.setState({
+      squares: squares,
+      xIsNext: !this.state.xIsNext,
+    });
+  }
+```
+
+tic-tac-toc 게임 완성!
+
+# Storing a History
+
+board의 이전상태로 돌아갈 수 있도록 해보자! 이동이 있을 때마다 새로운 `squares`를 만들었으므로 쉽게 만들 수 있다.
+
+state에 이런식의 데이터를 저장할 것이다.
+
+```
+history = [
+  {
+    squares: [
+      null, null, null,
+      null, null, null,
+      null, null, null,
+    ]
+  },
+  {
+    squares: [
+      null, null, null,
+      null, 'X', null,
+      null, null, null,
+    ]
+  },
+  // ...
+]
+```
+
+최상위 Game 컴포넌트에 움직임의 list를 갖고 있어야한다. Square에서 Board의 state를 가져온 것처럼 Board에서 Game으로 정보를 상위로 옮겨야한다.
+
+```
+class Game extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      history: [{
+        squares: Array(9).fill(null),
+      }],
+      xIsNext: true,
+    };
+  }
+
+  render() {
+    return (
+      <div className="game">
+        <div className="game-board">
+          <Board />
+        </div>
+        <div className="game-info">
+          <div>{/* status */}</div>
+          <ol>{/* TODO */}</ol>
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+그러고 Board를 수정하자. `squares`는 props를 통해서 가져오고, `onClick`도 Game으로 부터 가져온다. click handler로 각 square의 위치를 알 수 있다.
+
+1. `constructor` 삭제
+2. Board의 `renderSquare`에서 `this.state.squares[i]`를 `this.props.squares[i]`로 변경
+3. Board의 `renderSquare`에서 `this.handleClick(i)`를 `this.props.onClick(i)`로 변경
+
+```
+  renderSquare(i) {
+    return (
+      <Square
+        value={this.props.squares[i]}
+        onClick={() => this.props.onClick(i)}
+      />
+    );
+  }
+```
+
+Game의 `render`는 최근 history객체를 보아야하고 게임의 상태를 계산할 수 있어야한다.
+
+```
+  render() {
+    const history = this.state.history;
+    const current = history[history.length - 1];
+    const winner = calculateWinner(current.squares);
+
+    let status;
+    if (winner) {
+      status = 'Winner: ' + winner;
+    } else {
+      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+    }
+
+    return (
+      <div className="game">
+        <div className="game-board">
+          <Board
+            squares={current.squares}
+            onClick={(i) => this.handleClick(i)}
+          />
+
+        </div>
+        <div className="game-info">
+          <div>{status}</div>
+          <ol>{/* TODO */}</ol>
+        </div>
+      </div>
+    );
+  }
+```
+
+그리고 Board의 `render` 함수에서 `<div className="status">{status}</div>`는 삭제해야한다.
+
+```
+  render() {
+    return (
+      <div>
+        <div className="board-row">
+          {this.renderSquare(0)}
+          {this.renderSquare(1)}
+          {this.renderSquare(2)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(3)}
+          {this.renderSquare(4)}
+          {this.renderSquare(5)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(6)}
+          {this.renderSquare(7)}
+          {this.renderSquare(8)}
+        </div>
+      </div>
+    );
+  }
+```
+
+Board의 `handleClick`함수는 Game으로 옮겨야한다.
+
+```
+  handleClick(i) {
+    const history = this.state.history;
+    const current = history[history.length - 1];
+    const squares = current.squares.slice();
+    if (calculateWinner(squares) || squares[i]) {
+      return;
+    }
+    squares[i] = this.state.xIsNext ? 'X' : 'O';
+    this.setState({
+      history: history.concat([{
+        squares: squares,
+      }]),
+      xIsNext: !this.state.xIsNext,
+    });
+  }
+```
+
+## Showing the Moves
+
+Game의 render를 다음과 같이 바꾸자
+
+```
+  render() {
+    const history = this.state.history;
+    const current = history[history.length - 1];
+    const winner = calculateWinner(current.squares);
+
+    const moves = history.map((step, move) => {
+      const desc = move ?
+        'Go to move #' + move :
+        'Go to game start';
+      return (
+        <li>
+          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+        </li>
+      );
+    });
+
+    let status;
+    if (winner) {
+      status = 'Winner: ' + winner;
+    } else {
+      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+    }
+
+    return (
+      <div className="game">
+        <div className="game-board">
+          <Board
+            squares={current.squares}
+            onClick={(i) => this.handleClick(i)}
+          />
+        </div>
+        <div className="game-info">
+          <div>{status}</div>
+          <ol>{moves}</ol>
+        </div>
+      </div>
+    );
+  }
+```
+
+history의 각 stepdms `<li>`아이템 리스트의 `<button>`으로 만들었다. 이 코드를 사용하면 다음과 같이 경고 메세지를 볼 수 있다.
+
+```
+Warning: Each child in an array or iterator should have a unique "key" prop.
+
+Check the render method of `Game`. See https://fb.me/react-warning-keys for more information.
+    in li (at index.js:80)
+    in Game (at index.js:111)
+```
+
+## Keys
+
+list의 아이템을 렌더링할때, React는 항상 리스트의 각 아이템에 대한 정보를 저장한다. state를 갖는 컴포넌트가 렌더링할때 state는 저장되어야한다. 구현 방법과 관계없이 React는 참조를 기본 뷰에 저장한다. 이 리스트를 변경하면 React는 변경된 사항을 결정해야한다.
+
+아래 데이터에서 
+
+```
+<li>Alexa: 7 tasks left</li>
+<li>Ben: 5 tasks left</li>
+```
+
+아래처럼 변경되는 것을 상상해보자.
+
+```
+<li>Ben: 9 tasks left</li>
+<li>Claudia: 8 tasks left</li>
+<li>Alexa: 5 tasks left</li>
+```
+
+인간의 눈에는 Alexa와 Ben의 위치가 바뀌었고 Claudia가 추가된 것처럼 보일 수 있다. 그러나 React는 알 수 없어서 목록의 각 요소에 대해 키 속성을 지정하도록 요구하고있다. 이 경우 alexa, ben, claudia는 키가 될 수 있다. 항목이 데이터베이스의 개체에 해당하는 경우 일반적으로 데이터베이스 ID라고 생각하면 된다.
+
+```
+<li key={user.id}>{user.name}: {user.taskCount} tasks left</li>
+```
+
+`key`는 React에 의해 예약된 특별한 프로퍼티이다. 키값을 `this.props.key`로 바로 참조할 수 없다. React는 key를 자동으로 사용하여 업데이트할 자식을 결정한다. 컴포넌트가 key에 대해 질의할 방법은 없다.
+
+list가 다시 렌더링될 때, React는 새로운 버전의 리스트와 이전 버전의 리스트의 key가 매칭되는지 찾는다. key가 추가된다면 컴포넌트가 생성되고, key가 삭제될경우 컴포넌트가 삭제된다. 키는 React에서 각 컴포넌트의 신원을 알려서 다시 랜더링될때 전체에서 상태를 유지할 수 있도록 해준다. 구성요소의 키를 변경하면 삭제되었다가 새로 추가된다.
+
+*동적으로 list를 작성할 때마다 적절한 key를 할당하는 것이 좋다.* 적절한 키가 없으면 데이터를 재구성해라.
+
+키를 지정하지 않으면 React에서 경고를 하고, 배열 인덱스를 키로 사용할 것이다. 리스트를 재정리하거나 항목의 맨 아래에있는 항목을 추가 / 제거하는 경우 올바른 선택이 아니다. `key={i}`로 명시하면 같은 문제가 발생하여 추천하지 않는다.
+키는 전역적으로 고유할 필요는 없고 리스트와 관련하여 고유해야한다.
