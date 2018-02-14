@@ -726,3 +726,71 @@ list가 다시 렌더링될 때, React는 새로운 버전의 리스트와 이�
 
 키를 지정하지 않으면 React에서 경고를 하고, 배열 인덱스를 키로 사용할 것이다. 리스트를 재정리하거나 항목의 맨 아래에있는 항목을 추가 / 제거하는 경우 올바른 선택이 아니다. `key={i}`로 명시하면 같은 문제가 발생하여 추천하지 않는다.
 키는 전역적으로 고유할 필요는 없고 리스트와 관련하여 고유해야한다.
+
+## Implementing Time Travel
+
+Game의 `render`메소드에서 `<li key={move}>`처럼 key를 추가한다. 그럼 key관련 warning이 사라진다.
+
+```
+    const moves = history.map((step, move) => {
+      const desc = move ?
+        'Go to move #' + move :
+        'Go to game start';
+      return (
+        <li key={move}>
+          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+        </li>
+      );
+    });
+```
+
+이제 `jumpTo`를 구현해보자. Game의 `constructor`에 state를 초기화할 때 `stepNumber:0`으로 초기화한다. 다음으로 `jumpTo`를 다음과 같이 구현한다.
+
+```
+  jumpTo(step) {
+    this.setState({
+      stepNumber: step,
+      xIsNext: (step % 2) === 0,
+    });
+  }
+```
+
+이전 step으로 이동시에 이동된 step 이후의 단계는 모두 삭제하기 위해서 `handleClick`을 다음과 같이 바꾼다.
+
+```
+    handleClick(i) {
+      const history = this.state.history.slice(0, this.state.stepNumber + 1);
+      const current = history[history.length - 1];
+      const squares = current.squares.slice();
+      if(calculateWinner(squares) || squares[i]) {
+        return;
+      }
+      squares[i] = this.state.xIsNext ? 'X' : 'O';
+      this.setState({
+        history : history.concat([{
+          squares:squares,
+        }]),
+        xIsNext : !this.state.xIsNext,
+        stepNumber : history.length
+      });
+    }
+```
+
+이제 `render` 함수를 다음처럼 수정해줍니다.
+
+```
+  render() {
+    const history = this.state.history;
+    const current = history[this.state.stepNumber];
+    const winner = calculateWinner(current.squares);
+    ...
+```
+
+## Wrapping Up
+
+1. Display the location for each move in the format (col, row) in the move history list.
+2. Bold the currently selected item in the move list.
+3. Rewrite Board to use two loops to make the squares instead of hardcoding them.
+4. Add a toggle button that lets you sort the moves in either ascending or descending order.
+5. When someone wins, highlight the three squares that caused the win.
+6. When no one wins, display a message about the result being a draw.

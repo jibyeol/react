@@ -47,12 +47,13 @@ import './index.css';
         history : [{
           squares : Array(9).fill(null)
         }],
-        xIsNext : true
+        xIsNext : true,
+        stepNumber : 0
       }
     }
 
     handleClick(i) {
-      const history = this.state.history;
+      const history = this.state.history.slice(0, this.state.stepNumber + 1);
       const current = history[history.length - 1];
       const squares = current.squares.slice();
       if(calculateWinner(squares) || squares[i]) {
@@ -63,21 +64,23 @@ import './index.css';
         history : history.concat([{
           squares:squares,
         }]),
-        xIsNext : !this.state.xIsNext
+        xIsNext : !this.state.xIsNext,
+        stepNumber : history.length
       });
     }
 
     render() {
       const history = this.state.history;
-      const current = history[history.length - 1];
+      const current = history[this.state.stepNumber];
       const winner = calculateWinner(current.squares);
 
       const moves = history.map((step, move) => {
+        console.log(step, move);
         const desc = move ? 
             'Go to move #' + move : 
             'Go to game start';
         return (
-          <li>
+          <li key={move}>
             <button onClick={() => this.jumpTo(move)}>{desc}</button>
           </li>
         );
@@ -102,6 +105,13 @@ import './index.css';
           </div>
         </div>
       );
+    }
+
+    jumpTo(step){
+      this.setState({
+        stepNumber : step,
+        xIsNext : (step % 2) === 0
+      });
     }
   }
   
