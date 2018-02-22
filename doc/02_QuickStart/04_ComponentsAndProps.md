@@ -81,3 +81,116 @@ ReactDOM.render(
 
 ## Extracting Components
 
+```
+function Comment(props) {
+    return (
+        <div className="Comment">
+            <div className="UserInfo">
+                <img className="Avatar"
+                    src={props.author.avatarUrl}
+                    alt={props.author.name}
+                />
+                <div className="UserInfo-name">
+                    {props.author.name}
+                </div>
+            </div>
+            <div className="Comment-text"> 
+                {props.text}
+            </div>
+            <div className="Comment-date">
+                {formatDate(props.date)}
+            </div>
+        </div>
+    );
+}
+```
+
+위 구조는 'author'(객체), 'text'(문자열), 'date'(날짜)를 props로 받고 웹사이트를 설명하고 있다.
+이 component는 변경이 힘들고 재사용도 힘들다. 몇가지 component를 추출해보자.
+
+```
+function Avatar(props) {
+    return (
+        <img className="Avatar"
+            src={props.user.avatarUrl}
+            alt={props.user.name}
+        />
+    );
+}
+```
+
+`Avatar`는 `Comment`가 어떻게 렌더링 되는지 알 수 없다. 그래서 `author`에서 `user`로 바꾸었다.
+
+```
+function Comment(props) {
+    return (
+        <div className="Comment">
+            <div className="UserInfo">
+                <Avatar user="props.author" />
+                <div className="UserInfo-name">
+                    {props.author.name}
+                </div>
+            </div>
+            <div className="Comment-text"> 
+                {props.text}
+            </div>
+            <div className="Comment-date">
+                {formatDate(props.date)}
+            </div>
+        </div>
+    );
+}
+```
+
+`UserInfo`를 추출해보자.
+
+```
+function UserInfo(props) {
+    return (
+        <div className="UserInfo">
+            <Avatar user="props.user" />
+            <div className="UserInfo-name">
+                {props.user.name}
+            </div>
+        </div>
+    );
+}
+
+function Comment(props) {
+    return (
+        <div className="Comment">
+            <UserInfo user={props.author} />
+            <div className="Comment-text"> 
+                {props.text}
+            </div>
+            <div className="Comment-date">
+                {formatDate(props.date)}
+            </div>
+        </div>
+    );
+}
+```
+
+이제 재사용가능하게 분리되었다.
+
+## Props are Read-Only
+
+component가 함수든 클래스든 props는 수정해서는 안된다.
+
+```
+function sum(a,b) {
+    return a + b;
+}
+```
+
+이런 함수는 입력을 변경하지 않고 동일한 입력에 대해 동일한 결과를 반환해서 "pure"라고 한다.
+
+```
+function withdraw(account, amount) {
+    account.total -= amount;
+}
+```
+
+이 함수는 순수하지 않다.
+
+**모든 React 구성 요소는 소품과 관련하여 순수한 기능처럼 작동해야한다.**
