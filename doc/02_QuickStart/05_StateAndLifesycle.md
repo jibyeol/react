@@ -185,3 +185,103 @@ this.setState({comment : 'Hello'});
 
 ### State Updates May Be Asynchronous
 
+React는 여러 `setState()`호출을 한번만 업데이트하여 성능을 높일 수 있다. 그래서 `this.props`와 `this.state`가 비동기적으로 업데이트 될 수 있다. 그래서 다음 상태를 계산하기 위해서 그 값에 의존하면 안된다.
+
+아래 방식은 카운터를 업데이트하지 못 할수도 있다.
+
+```
+// wrong
+this.setState({
+    counter : this.state.counter + this.props.increment
+})
+```
+
+그래서 `setState()`가 객체를 받지 않고 함수를 받을 수 있게하면 된다. 함수는 이전 상태를 첫번째 argument로 받고 업데이트될 때 props를 두번째 argument로 받는다.
+
+```
+// Correct
+this.setState((prevState, props) => ({
+    counter : prevState.counter + props.increment
+}));
+```
+
+arrow function이 아닌 일반 function도 가능하다.
+
+```
+// Correct
+this.setState(function (prevState, props) {
+    return {counter : prevState.counter + props.increment};
+});
+```
+
+## State Updates are Merged
+
+`setState()`를 호출하면 React는 받은 객체를 현재 상태로 병합한다.
+
+```
+constructor(props) {
+    super(props);
+    this.state = {
+        posts : [],
+        comments : []
+    }
+}
+```
+
+```
+componentDidMount() {
+    fetchPosts().then(response => {
+        this.setState({
+            posts : response.posts
+        });
+    });
+
+    fetchComments().then(response => {
+        this.setState({
+            comments : response.comments
+        });
+    });
+}
+```
+
+얇은 병합이라서 `this.setState({comments})`를 호출하면 `this.state.posts`는 유지하고 `this.state.comments`를 완전히 대체한다.
+
+## The Data Flows Down
+
+parent component나 child component 모두 상태 저장 또는 상태 비저장인지 신경쓰면 안된다. 이것은 캡슐화한 이유이다. 설정은 해당 component만 해야한다.
+
+component는 자신의 state를 하위 component로 전달할 수 있다.
+
+```
+<h2>It is {this.state.date.toLocaleTimeString()}.</h2>
+```
+
+```
+<FormattedDate date={this.state.date} />
+```
+
+`FormattedDate` component는 `date` props를 받고 `Clock`으로부터 온다는 것을 모른다.
+
+```
+function FormattedDate(props) {
+    return <h2>It is {props.date.toLocaleTimeString()}.</h2>;
+}
+```
+
+이를 "top-down" 또는 "단방향" 데이터 흐름이라고 한다. 모든 component는 분리되어있음을 보여주기 위해 아래처럼 만들 수 있다.
+
+```
+function App() {
+    return(
+    <div>
+        <Clock />
+        <Clock />
+        <Clock />
+    </div>
+}
+
+ReactDOM.render(
+    <App />,
+    document.getElementById('root')
+);
+```
