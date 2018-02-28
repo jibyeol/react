@@ -89,7 +89,7 @@ JSX에서 `this`의 의미를 잘 알아야한다. JavaScript에서 class method
 
 이건 React와 관련된 행동이 아니고 JavaScript와 관련된 것이다. 일반적으로 `onClick={this.handleClick}`처럼 호출하지 않고 메소드를 참조하면 메소드를 바이딩해주어야한다.
 
-`bind`를 호출하는 것이 귀찮은 경우 public lass fields syntax을 사용할 때 클래스 필드를 사용하여 콜백을 올바르게 바인딩할 수 있다.
+`bind`를 호출하는 것이 귀찮은 경우 public class fields syntax을 사용할 때 클래스 필드를 사용하여 콜백을 올바르게 바인딩할 수 있다.
 
 바인드 설명!
 
@@ -130,3 +130,18 @@ class LoggingButton extends React.Component {
     }
 }
 ```
+
+여기서 문제점은 `LoggingButton`을 렌더링할 때마다 다른 콜백이 생성된다. 이런 성능문제를 피하려면 생성자에서 바인딩하거나 클래스 필드 구문을 사용하는 것이 좋다.
+
+## Passing Arguments to Event Handlers
+
+loop안에서 이벤트 핸들러에 파라미터를 전달하는 것이 일반적이다. 예를들어 `id`를 row ID일때 다음 중 하나가 작동한다.
+
+```
+<button onClick={(e) => this.deleteRow(id, e)}>Delete Row</button>
+<button onClick={this.deleteRow.bind(this, id)}>Delete Row</button>
+```
+
+이 두개는 똑같다. arrow function과 Function.prototype.bind를 각각 사용하고 있다.
+
+두 경우 모두 React 이벤트를 나타내는 `e`인수는 ID뒤에 두번째 인수로 전달된다. bind를 사용하면 추가 인수가 자동으로 전달된다.
